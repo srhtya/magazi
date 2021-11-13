@@ -7,23 +7,31 @@ import (
 	"github.com/serhatyavuzyigit/magazi/data"
 )
 
+// magazi handler struct
 type Magazi struct {
-	l *log.Logger
+	l    *log.Logger
+	file string
 }
 
-func NewMagazi(l *log.Logger) *Magazi {
-	return &Magazi{l}
+// creates new Magazi
+func NewMagazi(l *log.Logger, file string) *Magazi {
+	return &Magazi{l, file}
 }
 
 func (m *Magazi) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
-
+	// call appropiate functions for incoming request
 	if r.Method == http.MethodGet {
-		m.getValue(rw, r)
+		m.getData(rw, r)
+		return
+	}
+
+	if r.Method == http.MethodPost && r.RequestURI == "/flush" {
+		m.flushData(rw, r)
 		return
 	}
 
 	if r.Method == http.MethodPost {
-		m.addValue(rw, r)
+		m.addData(rw, r)
 		return
 	}
 
@@ -32,18 +40,19 @@ func (m *Magazi) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	rw.WriteHeader(http.StatusMethodNotAllowed)
 }
 
-func (m *Magazi) getValue(rw http.ResponseWriter, r *http.Request) {
-	m.l.Println("Handle GET")
+// get value from datastore for a given key
+func (m *Magazi) getData(rw http.ResponseWriter, r *http.Request) {
+	m.l.Println("GET")
 	key := r.URL.Query().Get("key")
 	if key == "" {
 		http.Error(rw, "Key not provided in query parameters", http.StatusBadRequest)
 	} else {
-		// fetch the products from the datastore
-		v, err := data.GetValue(key)
+		// fetch the data from the datastore
+		v, err := data.GetData(key)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusBadRequest)
 		} else {
-			// serialize the list to JSON
+			// serialize the object to JSON
 			err = v.ToJSON(rw)
 			if err != nil {
 				http.Error(rw, "Unable to marshal json", http.StatusInternalServerError)
@@ -53,14 +62,26 @@ func (m *Magazi) getValue(rw http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (m *Magazi) addValue(rw http.ResponseWriter, r *http.Request) {
-	m.l.Println("Handle POST")
+// add new value to datastore for a given key
+func (m *Magazi) addData(rw http.ResponseWriter, r *http.Request) {
+	m.l.Println("POST")
 
 	d := &data.Data{}
 	err := d.FromJSON(r.Body)
 	if err != nil {
 		http.Error(rw, "Unable to unmarshal json", http.StatusBadRequest)
+	} else {
+		data.AddData(d)
 	}
+}
 
-	data.AddValue(d)
+// flush data to file
+func (m *Magazi) flushData(rw http.ResponseWriter, r *http.Request) {
+	m.l.Println("POST")
+	data.UpdateFile(m.file)
+}
+
+// update file
+func (m *Magazi) UpdateFile() {
+	data.UpdateFile(m.file)
 }

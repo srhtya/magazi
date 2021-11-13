@@ -2,24 +2,32 @@ package main
 
 import (
 	"context"
+	"flag"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
-	"github.com/serhatyavuzyigit/magazi/data"
 	"github.com/serhatyavuzyigit/magazi/handlers"
 )
 
+var (
+	intervalTime = flag.Int("time", 1, "interval time as minutes")
+	listenPort   = flag.Int("port", 9242, "port to listen")
+	fileName     = flag.String("file", "backup-data", "name of the backup file")
+)
+
 func main() {
-	log.Println("start main")
+	// parse the flag variables
+	flag.Parse()
+
 	l := log.New(os.Stdout, "magazi-api ", log.LstdFlags)
-	bindAddress := ":9090"
+	bindAddress := fmt.Sprintf("%s%d", ":", *listenPort)
 
 	// create the magazi handler
-	mh := handlers.NewMagazi(l)
-
+	mh := handlers.NewMagazi(l, *fileName)
 	// create the serve mux and register the handlers
 	sm := http.NewServeMux()
 	sm.Handle("/", mh)
@@ -34,11 +42,26 @@ func main() {
 		IdleTimeout:  120 * time.Second, // max time for connections using TCP Keep-Alive
 	}
 
-	go heartBeat()
-
-	// start the server
+	// define time ticker for interval job
+	// create goroutine for interval
+	ticker := time.NewTicker(time.Duration(*intervalTime) * time.Second)
+	intervalDone := make(chan struct{})
 	go func() {
-		l.Println("Starting server on port 9090")
+		for {
+			select {
+			case <-ticker.C:
+				// update file with current store
+				mh.UpdateFile()
+			case <-intervalDone:
+				ticker.Stop()
+				return
+			}
+		}
+	}()
+
+	// create goroutine for the server
+	go func() {
+		l.Printf("Starting server on port %d", *listenPort)
 
 		err := s.ListenAndServe()
 		if err != nil {
@@ -55,14 +78,8 @@ func main() {
 	// Block until a signal is received.
 	sig := <-c
 	log.Println("Got signal:", sig)
-
+	close(intervalDone)
 	// gracefully shutdown the server, waiting max 30 seconds for current operations to complete
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	s.Shutdown(ctx)
-}
-
-func heartBeat() {
-	for range time.Tick(time.Second * 10) {
-		data.UpdateBackup()
-	}
 }
