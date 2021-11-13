@@ -28,6 +28,7 @@ func main() {
 
 	// create the magazi handler
 	mh := handlers.NewMagazi(l, *fileName)
+	mh.PrepareDataStore()
 	// create the serve mux and register the handlers
 	sm := http.NewServeMux()
 	sm.Handle("/", mh)
@@ -44,7 +45,7 @@ func main() {
 
 	// define time ticker for interval job
 	// create goroutine for interval
-	ticker := time.NewTicker(time.Duration(*intervalTime) * time.Second)
+	ticker := time.NewTicker(time.Duration(*intervalTime) * time.Minute)
 	intervalDone := make(chan struct{})
 	go func() {
 		for {

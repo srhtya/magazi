@@ -85,3 +85,8 @@ func (m *Magazi) flushData(rw http.ResponseWriter, r *http.Request) {
 func (m *Magazi) UpdateFile() {
 	data.UpdateFile(m.file)
 }
+
+// prepare data store for initialization
+func (m *Magazi) PrepareDataStore() {
+	data.PrepareDataStore(m.file)
+}

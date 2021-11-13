@@ -15,10 +15,7 @@ type Data struct {
 	Value string `json:"value"`
 }
 
-var (
-	dataMap  map[string]Data
-	fileName string
-)
+var dataMap map[string]Data
 
 // get value from datastore for a given key
 func GetData(key string) (Data, error) {
@@ -34,6 +31,9 @@ func getDataFromMap(key string, data map[string]Data) (Data, error) {
 
 // add new value to datastore for a given key
 func AddData(d *Data) {
+	if dataMap == nil {
+		dataMap = make(map[string]Data)
+	}
 	addDataToMap(d, dataMap)
 }
 
@@ -53,21 +53,8 @@ func (d *Data) FromJSON(r io.Reader) error {
 	return e.Decode(d)
 }
 
-// initial function for data.go
-func init() {
-	m := getMapFromFile()
-	if m != nil {
-		dataMap = m
-	} else {
-		dataMap = make(map[string]Data)
-	}
-}
-
 // update backup file current datastore
 func UpdateFile(file string) {
-	if fileName == "" {
-		fileName = file
-	}
 	updateFileWithMap(file, dataMap)
 }
 
@@ -79,17 +66,17 @@ func updateFileWithMap(file string, data map[string]Data) {
 	}
 }
 
-// fill datastore from backup file
-func getMapFromFile() map[string]Data {
-	if fileName != "" {
-		var backupMap map[string]Data
-		loc := fmt.Sprintf("%s%s%s", "/tmp/", fileName, ".json")
+// reload data from backup file if it exists
+func PrepareDataStore(file string) {
+	loc := fmt.Sprintf("%s%s%s", "/tmp/", file, ".json")
+	if _, err := os.Stat(loc); errors.Is(err, os.ErrNotExist) {
+		dataMap = make(map[string]Data)
+	} else {
 		backupFile, err := ioutil.ReadFile(loc)
 		if err == nil {
-			json.Unmarshal([]byte(backupFile), &backupMap)
-			return backupMap
+			json.Unmarshal([]byte(backupFile), &dataMap)
+		} else {
+			dataMap = make(map[string]Data)
 		}
-		return nil
 	}
-	return nil
 }
