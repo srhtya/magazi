@@ -3,6 +3,7 @@ package handlers
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/serhatyavuzyigit/magazi/data"
 )
@@ -43,6 +44,7 @@ func (m *Magazi) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 // get value from datastore for a given key
 func (m *Magazi) getData(rw http.ResponseWriter, r *http.Request) {
 	m.l.Println("GET")
+	start := time.Now()
 	key := r.URL.Query().Get("key")
 	if key == "" {
 		http.Error(rw, "Key not provided in query parameters", http.StatusBadRequest)
@@ -58,14 +60,22 @@ func (m *Magazi) getData(rw http.ResponseWriter, r *http.Request) {
 				http.Error(rw, "Unable to marshal json", http.StatusInternalServerError)
 			}
 		}
-
 	}
+	requesterIP := r.RemoteAddr
+
+	log.Printf(
+		"%s\t\t%s\t\t%s\t\t%v",
+		r.Method,
+		r.RequestURI,
+		requesterIP,
+		time.Since(start),
+	)
 }
 
 // add new value to datastore for a given key
 func (m *Magazi) addData(rw http.ResponseWriter, r *http.Request) {
 	m.l.Println("POST")
-
+	start := time.Now()
 	d := &data.Data{}
 	err := d.FromJSON(r.Body)
 	if err != nil {
@@ -73,12 +83,32 @@ func (m *Magazi) addData(rw http.ResponseWriter, r *http.Request) {
 	} else {
 		data.AddData(d)
 	}
+	requesterIP := r.RemoteAddr
+
+	log.Printf(
+		"%s\t\t%s\t\t%s\t\t%s\t\t%v",
+		r.Method,
+		r.RequestURI,
+		d,
+		requesterIP,
+		time.Since(start),
+	)
 }
 
 // flush data to file
 func (m *Magazi) flushData(rw http.ResponseWriter, r *http.Request) {
 	m.l.Println("POST")
+	start := time.Now()
 	data.UpdateFile(m.file)
+	requesterIP := r.RemoteAddr
+
+	log.Printf(
+		"%s\t\t%s\t\t%s\t\t%v",
+		r.Method,
+		r.RequestURI,
+		requesterIP,
+		time.Since(start),
+	)
 }
 
 // update file

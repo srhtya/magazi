@@ -26,6 +26,15 @@ func main() {
 	l := log.New(os.Stdout, "magazi-api ", log.LstdFlags)
 	bindAddress := fmt.Sprintf("%s%d", ":", *listenPort)
 
+	// handle requests log
+	requestsLogFile := "requests.log"
+	loc := fmt.Sprintf("%s%s", "/tmp/", requestsLogFile)
+	logFile, err := os.OpenFile(loc, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0666)
+	if err == nil {
+		log.SetOutput(logFile)
+	}
+	defer logFile.Close()
+
 	// create the magazi handler
 	mh := handlers.NewMagazi(l, *fileName)
 	mh.PrepareDataStore()
