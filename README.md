@@ -60,3 +60,5 @@ Now backup file will be synced with current data store.
 ## Requests Log
 Each http request will be saved to file called `requests.log` under the `/tmp` folder. You can analyze all the requests with their properties.
 
+## Tests
+You can run the unit tests with `./run-tests.sh`
