@@ -25,7 +25,7 @@ Now we can run our docker image as container. Run:
 ```
 docker run -d -p 9242:9242 magazi:<my_version>
 ```
-You can see the running container with `docker -ps`.
+You can see the running container with `docker ps`.
 
 ## API Usage
 At this time our app is running in `localhost:9242`.
